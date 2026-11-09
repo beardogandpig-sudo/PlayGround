@@ -51,13 +51,16 @@ function makeFighter(name, colors, isPlayer){
   // legs, boots, torso, gi panels, belt
   const legs=[];
   for(const s of [-1,1]){const leg=new THREE.Group();leg.position.set(s*.23,.87,0);body.add(leg);capsule(leg,undersuit,[0,-.08,0],[s*.035,-.47,0],.17,.16);capsule(leg,suit,[s*.035,-.42,0],[s*.07,-.76,0],.16,.145);const b=new THREE.Mesh(new THREE.BoxGeometry(.32,.2,.4),boot);b.position.set(s*.08,-.83,.08);b.castShadow=true;leg.add(b);legs.push(leg);}
+  const hairParts=[],superHairParts=[];
   ell(body,undersuit,[0,1.35,0],[.42,.58,.28]);ell(body,suit,[0,1.44,.015],[.46,.54,.30]);
   const gi=new THREE.Mesh(new THREE.ConeGeometry(.39,.55,4),suit);gi.position.set(0,1.15,.2);gi.rotation.y=Math.PI/4;gi.scale.set(.9,1,.28);gi.castShadow=true;body.add(gi);
   const beltMesh=new THREE.Mesh(new THREE.BoxGeometry(.82,.12,.59),belt);beltMesh.position.y=1.05;beltMesh.castShadow=true;body.add(beltMesh);
   ell(body,skin,[0,2.1,0],[.31,.34,.29]);
   // neck + angular anime hair spikes
-  const hairCap=ell(body,hair,[0,2.34,-.025],[.32,.19,.3]);
-  for(let i=0;i<7;i++){const a=i/7*Math.PI*2;const spike=new THREE.Mesh(new THREE.ConeGeometry(.16,.66+(i%3)*.12,5),hair);spike.position.set(Math.cos(a)*.2,2.64+(i%2)*.07,Math.sin(a)*.18);spike.rotation.z=-Math.cos(a)*.46;spike.rotation.x=Math.sin(a)*.42;spike.castShadow=true;body.add(spike);}
+  const hairCap=ell(body,hair,[0,2.34,-.025],[.32,.19,.3]);hairParts.push(hairCap);
+  for(let i=0;i<7;i++){const a=i/7*Math.PI*2;const spike=new THREE.Mesh(new THREE.ConeGeometry(.16,.66+(i%3)*.12,5),hair);spike.position.set(Math.cos(a)*.2,2.64+(i%2)*.07,Math.sin(a)*.18);spike.rotation.z=-Math.cos(a)*.46;spike.rotation.x=Math.sin(a)*.42;spike.castShadow=true;body.add(spike);hairParts.push(spike);}
+  const superHair=mat('#ffd83d',.5),superHairCap=ell(body,superHair,[0,2.38,-.025],[.34,.2,.31]);superHairCap.visible=false;superHairParts.push(superHairCap);
+  for(let i=0;i<9;i++){const a=i/9*Math.PI*2;const spike=new THREE.Mesh(new THREE.ConeGeometry(.16,.86+(i%3)*.12,5),superHair);spike.position.set(Math.cos(a)*.22,2.69+(i%2)*.09,Math.sin(a)*.2);spike.rotation.z=-Math.cos(a)*.48;spike.rotation.x=Math.sin(a)*.45;spike.castShadow=true;spike.visible=false;body.add(spike);superHairParts.push(spike);}
   // face eyes and brows
   for(const s of [-1,1]){const eye=ell(body,mat('#fff6de'),[s*.105,2.13,.263],[.065,.044,.035]);ell(body,mat(isPlayer?'#138cab':'#be4932'),[s*.105,2.13,.294],[.027,.035,.017]);const brow=new THREE.Mesh(new THREE.BoxGeometry(.14,.035,.04),hair);brow.position.set(s*.105,2.2,.26);brow.rotation.z=s*.15;brow.castShadow=true;body.add(brow);}
   const arms=[];
@@ -66,7 +69,7 @@ function makeFighter(name, colors, isPlayer){
   const emblem=new THREE.Mesh(new THREE.CircleGeometry(.105,24),mat(colors.emblem));emblem.position.set(.13,1.59,.282);body.add(emblem);
   const aura=new THREE.Mesh(new THREE.ConeGeometry(.73,3.2,12,1,true),auraMat);aura.position.y=1.65;aura.scale.set(1,1,.72);aura.visible=false;group.add(aura);
   const glow=new THREE.PointLight(colors.aura,0,5);glow.position.y=1.4;group.add(glow);
-  const state={name,group,body,arms,legs,aura,glow,isPlayer,hp:100,ki:0,x:isPlayer?-3:3,z:0,vx:0,vz:0,face:isPlayer?1:-1,stun:0,attack:0,attackType:'',cooldown:0,charging:false,dead:false,colors};group.position.set(state.x,0,state.z); fighters.push(state);return state;
+  const state={name,group,body,arms,legs,hairParts,superHairParts,aura,glow,isPlayer,hp:100,ki:0,transformed:false,overcharge:0,maxKiAnnounced:false,x:isPlayer?-3:3,z:0,vx:0,vz:0,face:isPlayer?1:-1,stun:0,attack:0,attackType:'',cooldown:0,charging:false,dead:false,colors};group.position.set(state.x,0,state.z); fighters.push(state);return state;
 }
 const player=makeFighter('SON GOKU',{skin:'#efb992',suit:'#ed7139',under:'#253d83',hair:'#17202c',boot:'#273c79',belt:'#246bca',aura:'#59dfff',emblem:'#f7dcaa'},true);
 const enemy=makeFighter('VEGETA',{skin:'#e5ad87',suit:'#263b75',under:'#f0e9d8',hair:'#111725',boot:'#25385d',belt:'#d6c6ab',aura:'#ff6197',emblem:'#dfd2b6'},false);
@@ -90,7 +93,8 @@ function renderHud(){
 }
 function startGame(){started=true;time=120;renderHud();toastMsg('FIGHT!');}
 function toastMsg(text){toast.textContent=text;toast.classList.add('visible');toastTimer=1.1;}
-function updateHud(){const p=document.querySelector('#p-health');if(!p)return; p.style.width=player.hp+'%';document.querySelector('#e-health').style.width=enemy.hp+'%';document.querySelector('#p-health-text').textContent=Math.ceil(player.hp);document.querySelector('#e-health-text').textContent=Math.ceil(enemy.hp);document.querySelector('#p-ki').style.width=player.ki+'%';document.querySelector('#e-ki').style.width=enemy.ki+'%';document.querySelector('#p-ki-text').textContent=Math.floor(player.ki)+'%';document.querySelector('#timer').textContent=Math.ceil(time);}
+function transformFighter(f){if(f.transformed)return;f.transformed=true;f.overcharge=0;f.hairParts.forEach(part=>part.visible=false);f.superHairParts.forEach(part=>part.visible=true);f.aura.material.color.set('#ffd83d');f.glow.color.set('#ffd83d');f.glow.intensity=16;f.aura.scale.set(1.3,1.18,.95);shake=.65;burstAt(new THREE.Vector3(f.x,1.7,f.z),0xffd83d,48);if(f.isPlayer){toastMsg('SUPER SAIYAN!');lastAction='transform';}}
+function updateHud(){const p=document.querySelector('#p-health');if(!p)return; p.style.width=player.hp+'%';document.querySelector('#e-health').style.width=enemy.hp+'%';document.querySelector('#p-health-text').textContent=Math.ceil(player.hp);document.querySelector('#e-health-text').textContent=Math.ceil(enemy.hp);document.querySelector('#p-ki').style.width=player.ki+'%';document.querySelector('#e-ki').style.width=enemy.ki+'%';document.querySelector('#p-ki-text').textContent=player.transformed?'SUPER SAIYAN':Math.floor(player.ki)+'%';document.querySelector('#timer').textContent=Math.ceil(time);}
 function togglePause(){paused=!paused;document.querySelector('#pause-overlay')?.classList.toggle('hidden',!paused);}
 function endGame(winner){ended=true;paused=true;const overlay=document.querySelector('#pause-overlay');overlay.classList.remove('hidden');overlay.innerHTML=`<div class="pause-card result-card"><span class="eyebrow">${winner==='YOU WIN'?'A LEGEND IS BORN':'THE PRINCE PREVAILS'}</span><h2>${winner}</h2><p>${winner==='YOU WIN'?'The arena bows to your power.':'Rise again. The next battle is yours.'}</p><button id="again-button" class="play-button"><span>FIGHT AGAIN</span><b>↗</b></button></div>`;document.querySelector('#again-button').onclick=()=>location.reload();}
 
@@ -115,7 +119,7 @@ function attackUpdate(f){if(f.attack>0){const prev=f.attack;f.attack=Math.max(0,
 }
 function animateFighter(f,dt){const moving=Math.abs(f.vx)+Math.abs(f.vz)>.7;const t=time*9+(f===player?0:Math.PI);f.body.position.y=f.attackType==='dash'&&f.attack>0?.16:Math.sin(t)*.04*(moving?1.4:.35);f.body.rotation.z=f.attackType==='strike'&&f.attack>0?Math.sin((.4-f.attack)/.4*Math.PI)*-.18:0;
   f.legs.forEach((l,i)=>{l.rotation.x=moving?Math.sin(t+i*Math.PI)*.52:0;});f.arms.forEach((a,i)=>{const s=i===0?-1:1;if(f.attackType==='strike'&&f.attack>0&&s===f.faceSide){const q=Math.sin((.4-f.attack)/.4*Math.PI);a.rotation.z=-f.face*q*1.35;a.rotation.x=-q*.5;}else if(f.charging){a.rotation.x=-.8+Math.sin(t*2)*.08;a.rotation.z=s*.65;}else{a.rotation.x=Math.sin(t*.6+i)*.04;a.rotation.z=s*.12;}});
-  f.aura.visible=f.charging||f.ki>94;f.aura.material.opacity=f.charging?.12+Math.sin(t*2)*.05:.08;f.aura.scale.set(1+Math.sin(t*2)*.08,1+Math.sin(t*3)*.07, .72);f.glow.intensity=f.charging?10:0;f.group.rotation.y=f.face>0?Math.PI/2:-Math.PI/2;f.group.position.set(f.x,0,f.z);
+  f.aura.visible=f.charging||f.ki>94||f.transformed;f.aura.material.opacity=f.transformed?.22+Math.sin(t*3)*.07:f.charging?.12+Math.sin(t*2)*.05:.08;f.aura.scale.set((f.transformed?1.28:1)+Math.sin(t*2)*.08,(f.transformed?1.14:1)+Math.sin(t*3)*.07, f.transformed?.9:.72);f.glow.intensity=f.transformed?8+Math.sin(t*3)*2:f.charging?10:0;f.group.rotation.y=f.face>0?Math.PI/2:-Math.PI/2;f.group.position.set(f.x,0,f.z);
 }
 function update(dt){time-=dt;timerAcc+=dt;if(timerAcc>1&&time>0){timerAcc=0;}if(time<=0&&!ended){time=0;endGame(player.hp>=enemy.hp?'YOU WIN':'YOU LOSE');}if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)toast.classList.remove('visible');}
   const dx=enemy.x-player.x;player.face=dx>=0?1:-1;enemy.face=-player.face;
@@ -123,7 +127,7 @@ function update(dt){time-=dt;timerAcc+=dt;if(timerAcc>1&&time>0){timerAcc=0;}if(
   let mx=(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0)+touchMove.x;
   let mz=(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0)+touchMove.z;
   const mlen=Math.hypot(mx,mz);if(mlen>1){mx/=mlen;mz/=mlen;}const speed=keys.has('shift')?7.4:4.7;
-  if(player.stun<=0&&started&&!paused){player.vx+=(mx*speed-player.vx)*Math.min(1,dt*9);player.vz+=(mz*speed-player.vz)*Math.min(1,dt*9);if(chargeHeld||keys.has('l')){player.charging=true;player.ki=Math.min(100,player.ki+dt*25);if(Math.random()<dt*12)burstAt(new THREE.Vector3(player.x+(Math.random()-.5),1.6,player.z+(Math.random()-.5)),0x62eaff,1);}else player.charging=false;}
+  if(player.stun<=0&&started&&!paused){player.vx+=(mx*speed-player.vx)*Math.min(1,dt*9);player.vz+=(mz*speed-player.vz)*Math.min(1,dt*9);if(chargeHeld||keys.has('l')){player.charging=true;if(player.ki<100)player.ki=Math.min(100,player.ki+dt*25);else if(!player.transformed){player.overcharge+=dt;if(!player.maxKiAnnounced){toastMsg('KI MAXED — KEEP CHARGING!');player.maxKiAnnounced=true;}if(player.overcharge>=2.2){transformFighter(player);}}if(Math.random()<dt*12)burstAt(new THREE.Vector3(player.x+(Math.random()-.5),1.6,player.z+(Math.random()-.5)),player.transformed?0xffd83d:0x62eaff,1);}else player.charging=false;}
   // Rival keeps pressure, dodges, charges when at range.
   if(enemy.stun<=0&&started&&!paused&&!enemy.dead){const dist=Math.hypot(dx,enemy.z-player.z),approach=dist>2.3?1:dist<1.6?-.18:0;enemy.vx+=(Math.sign(-dx)*approach*3.5-enemy.vx)*Math.min(1,dt*3);enemy.vz+=((player.z-enemy.z)*.65-enemy.vz)*Math.min(1,dt*2);enemy.ai=(enemy.ai||0)-dt;if(enemy.charging){enemy.ki=Math.min(100,enemy.ki+dt*21);if(enemy.ai<=0){enemy.charging=false;enemy.ai=.25;}}else if(enemy.ai<=0){if(dist>4&&enemy.ki<70&&Math.random()<.5){enemy.charging=true;enemy.ai=.65;}else if(dist<2.5&&Math.random()<.65){trigger('strike',enemy);enemy.ai=.75+Math.random()*.3;}else if(enemy.ki>=22&&dist<8){trigger('blast',enemy);enemy.ai=1.1;}else{enemy.ai=.4;}}}
   for(const f of fighters){f.x+=f.vx*dt;f.z+=f.vz*dt;f.vx*=Math.pow(.025,dt);f.vz*=Math.pow(.025,dt);f.x=THREE.MathUtils.clamp(f.x,-8.7,8.7);f.z=THREE.MathUtils.clamp(f.z,-7.7,7.7);attackUpdate(f);animateFighter(f,dt);}
